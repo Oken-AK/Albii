@@ -40,6 +40,8 @@
 | ADR番号 | タイトル | ステータス |
 |---------|---------|----------|
 | ADR-0000 | テンプレート | Template |
+| ADR-0001 | Kotlin + Jetpack Compose 採用 | Accepted |
+| ADR-0002 | サムネイル・一覧取得・DI の方針変更（Coil / Paging 3 撤回、手動DI） | Accepted |
 | ADR-0001 | Androidアプリの技術スタックに Kotlin + Jetpack Compose を採用する | Accepted |
 
 新規ADRは \\docs/adr/ADR-0000-template.md\\ をコピーして作成すること。

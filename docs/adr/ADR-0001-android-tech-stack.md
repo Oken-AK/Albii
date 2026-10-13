@@ -1,3 +1,5 @@
+> 注記: 「一覧は Paging 3、画像は Coil」の部分は [ADR-0002](./ADR-0002-thumbnail-listing-and-di.md) で置き換えた。
+
 # ADR-0001: Androidアプリの技術スタックに Kotlin + Jetpack Compose を採用する
 
 **ステータス**: Accepted

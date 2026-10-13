@@ -7,12 +7,12 @@
 
 ## 現在のステータス
 - **プロジェクト**: Albii
-- **現在地**: Phase 0（雛形）作成済み。ビルド検証は未実施
+- **現在地**: Phase 1（権限 + MediaStore + グリッド）実装済み。ビルド・単体テスト通過。実機未確認
 - **作業ブランチ**: `feature/android-album-app`
 
 ## 要件・計画
 - 計画書: [android-album-app-plan.md](./android-album-app-plan.md)
-- ADR: [ADR-0001](../docs/adr/ADR-0001-android-tech-stack.md)（Kotlin + Jetpack Compose）
+- ADR: [ADR-0001](../docs/adr/ADR-0001-android-tech-stack.md)（Kotlin + Jetpack Compose）、[ADR-0002](../docs/adr/ADR-0002-thumbnail-listing-and-di.md)（Coil / Paging 3 撤回、手動DI）
 
 ## 実装済みの内容
 - プロジェクトセットアップ（Kiro-style Copilot設定、`docs/adr/`）
@@ -33,10 +33,14 @@
 - `local.properties`（`sdk.dir`）は各自の環境で作るもので、Git 管理外
 
 ## 次のアクション
-- Phase 1: 権限 + MediaStore + グリッド表示
+- Phase 1 の実機確認（権限ダイアログ、グリッド表示、並び順、日別・月別、右端スクロールバー）
+- 実機で大量データ（数千件以上）のスクロールを確認し、完了条件を満たすか判定
+- Phase 2: 詳細表示（フルサイズ表示・上スワイプで情報パネル）
 
 ## 発生している課題・特記事項
-- Hilt の要否は Phase 1 着手時に判断
+- Coil 3 は KMP 版 Compose を引き込み、ビルドが壊れたため撤回（ADR-0002）
+- `loadThumbnail` で動画・HEIC が取れない場合の表示は未確認
+- Kotlin 関連の plugin（`kotlin-android`）が未適用だったため、テストが動いていなかった。修正済み
 
 ## AIへの伝言
-「Phase 0 のビルドが通ったで。次は Phase 1 に進んでね。」
+「Phase 1 のビルドとテストは通ったで。実機で動かして、見た目と並び順を確認してな。」

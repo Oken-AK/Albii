@@ -72,8 +72,8 @@
 | ID | 要件 |
 |----|------|
 | N-01 | 数万枚規模でもスムーズにスクロール |
-| N-02 | Coil によるサムネイルのメモリ＋ディスクキャッシュ |
-| N-03 | Paging 3 で必要範囲のみ読み込み |
+| N-02 | `loadThumbnail` + LruCache によるサムネイルのメモリキャッシュ（ADR-0002 で Coil を撤回。ディスクキャッシュは見送り） |
+| N-03 | MediaStore の軽量インデックス（id・日時）を一括取得し、サムネイルは表示時に読む（ADR-0002 で Paging 3 を撤回） |
 | N-04 | 通信なし（INTERNET権限不要） |
 | N-05 | Room（お気に入り・独自アルバム・ゴミ箱・解析キャッシュ）、DataStore（設定） |
 | N-06 | 実ファイル削除は MediaStore の削除リクエスト（システム確認）経由 |
@@ -84,7 +84,7 @@
 |-------|------|
 | `MainActivity` | エントリポイント・Composeホスト |
 | `AlbiiNavHost` | 画面遷移 |
-| `MediaRepository` / `MediaItem` | MediaStoreから画像・動画をPagingで取得 |
+| `MediaRepository` / `MediaItem` | MediaStoreから画像・動画のインデックス（id・日時）を一括取得 |
 | `AlbumRepository` | 端末フォルダ一覧 |
 | `AlbiiDatabase` / `FavoriteDao` / `CustomAlbumDao` / `TrashDao` | Room |
 | `TrashRepository` | ゴミ箱移動・復元・30日完全削除 |
@@ -131,7 +131,7 @@
 
 ## 未確定事項・要確認
 
-- Hilt導入の要否（Phase 0で判断）
+- ~~Hilt導入の要否（Phase 0で判断）~~ → 不採用。手動DI（ADR-0002）
 - パッケージ名の最終確定
 - AF枠の対応メーカー（実機・サンプル写真で決定）
 - 端末内顔認識（名前付け）の扱い（初期は見送り案）
