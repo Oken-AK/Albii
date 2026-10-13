@@ -3,31 +3,23 @@ package com.oken.albii
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.oken.albii.ui.grid.PhotoGridScreen
+import com.oken.albii.ui.permission.PermissionGate
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             MaterialTheme {
-                AlbiiRoot()
+                Surface(modifier = Modifier) {
+                    PermissionGate {
+                        PhotoGridScreen()
+                    }
+                }
             }
-        }
-    }
-}
-
-@Composable
-private fun AlbiiRoot() {
-    Surface(modifier = Modifier.fillMaxSize()) {
-        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-            Text(text = "Albii")
         }
     }
 }

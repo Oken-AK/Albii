@@ -1,4 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Albii</string>
+    <string name="permission_title">写真と動画へのアクセスが必要です</string>
+    <string name="permission_body">端末内の写真と動画を表示するために、メディアへのアクセスを許可してください。</string>
+    <string name="permission_grant">許可する</string>
+    <string name="permission_open_settings">設定を開く</string>
+    <string name="permission_partial_notice">現在は一部の写真だけが許可されています。すべての写真を表示するには設定で変更してください。</string>
+    <string name="grid_title">Albii</string>
+    <string name="grid_media_count">%1$d 件</string>
+    <string name="grid_loading">読み込み中…</string>
+    <string name="grid_empty">表示できる写真・動画がありません</string>
+    <string name="sort_newest_top">新しい順（上が最新）</string>
+    <string name="sort_newest_bottom">新しい順（下が最新）</string>
+    <string name="group_none">グリッド</string>
+    <string name="group_day">日別</string>
+    <string name="group_month">月別</string>
 </resources>
