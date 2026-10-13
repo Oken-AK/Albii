@@ -35,5 +35,4 @@
 
 ## 参考資料
 
-- 関連する計画書: `plan/xxx.md`
-- 関連するADR: `docs/adr/ADR-XXXX.md`
+- 関連する計画書: \\plan/xxx.md\\${nl}- 関連するADR: \\docs/adr/ADR-XXXX.md\\${nl}
