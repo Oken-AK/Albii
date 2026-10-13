@@ -24,14 +24,19 @@
   - `MainActivity.kt`（空のCompose画面）
   - `.gitignore`
 
+## ビルド環境（検証済み）
+- JDK 17（Temurin 17.0.20、`%USERPROFILE%\dev\jdk-17.0.20.1+1`）
+- Android SDK（`%LOCALAPPDATA%\Android\Sdk`）: platform-tools / platforms;android-35 / build-tools;35.0.0 / build-tools;34.0.0
+- Gradle Wrapper 8.11.1 生成済み（`gradlew` / `gradlew.bat`）
+- `./gradlew assembleDebug` 成功（`app/build/outputs/apk/debug/app-debug.apk`）
+- Android Studio は winget の管理者インストールが UAC 待ちで止まったため、zip 版の SDK とコマンドラインで代替。Studio で開けば同じプロジェクトを扱える
+- `local.properties`（`sdk.dir`）は各自の環境で作るもので、Git 管理外
+
 ## 次のアクション
-- Android Studio で開いて Gradle Wrapper を生成（gradlew / gradle-wrapper.jar は未生成）
-- `./gradlew assembleDebug` でビルド確認、必要ならバージョン調整
 - Phase 1: 権限 + MediaStore + グリッド表示
 
 ## 発生している課題・特記事項
-- 作業環境に Android SDK・Gradle が無く、Java は 8 のみのため、この時点でビルド検証はしていない
-- Hilt の要否は Phase 0 で未判断
+- Hilt の要否は Phase 1 着手時に判断
 
 ## AIへの伝言
-「Phase 0 の雛形まで完了。まず Android Studio でビルドを通してから Phase 1 に進んでね。」
+「Phase 0 のビルドが通ったで。次は Phase 1 に進んでね。」
