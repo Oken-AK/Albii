@@ -40,6 +40,7 @@
 | ADR番号 | タイトル | ステータス |
 |---------|---------|----------|
 | ADR-0000 | テンプレート | Template |
+| ADR-0001 | Androidアプリの技術スタックに Kotlin + Jetpack Compose を採用する | Accepted |
 
 新規ADRは \\docs/adr/ADR-0000-template.md\\ をコピーして作成すること。
 
@@ -54,6 +55,9 @@
 
 ## 技術スタック
 
-**不明**
-
-> このセクションはプロジェクト固有の内容に書き換えること。
+**Android アプリ（Albii）**
+- 言語 / UI: Kotlin / Jetpack Compose（Material 3）
+- 対象: Android 14（minSdk 34）、スマホ・タブレット
+- 画像 Coil / 動画 Media3 / 一覧 Paging 3 / DB Room / 設定 DataStore
+- 完全ローカル（INTERNET権限なし）
+- 詳細: [plan/android-album-app-plan.md](./plan/android-album-app-plan.md)、[ADR-0001](./docs/adr/ADR-0001-android-tech-stack.md)
