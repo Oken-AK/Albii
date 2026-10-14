@@ -31,6 +31,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.oken.albii.R
 import com.oken.albii.ui.albums.AlbumsScreen
@@ -60,6 +61,7 @@ private class ViewerRequest(val items: List<ViewerItem>, val startIndex: Int)
 @Composable
 fun MainScreen() {
     val gridViewModel: GridViewModel = viewModel()
+    val gridState by gridViewModel.state.collectAsStateWithLifecycle()
     var tabIndex by rememberSaveable { mutableIntStateOf(MainTab.PHOTOS.ordinal) }
     val tab = MainTab.entries[tabIndex]
     var menuExpanded by remember { mutableStateOf(false) }
@@ -132,6 +134,7 @@ fun MainScreen() {
             ViewerScreen(
                 items = request.items,
                 startIndex = request.startIndex,
+                enabledInfoItems = gridState.enabledInfoItems,
                 onClose = { viewer = null },
             )
         }

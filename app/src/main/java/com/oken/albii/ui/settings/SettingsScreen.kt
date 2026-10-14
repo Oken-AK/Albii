@@ -1,6 +1,7 @@
 package com.oken.albii.ui.settings
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -15,6 +16,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -32,6 +34,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.oken.albii.R
 import com.oken.albii.data.AppSettings
+import com.oken.albii.info.InfoCategory
+import com.oken.albii.info.InfoItem
 import com.oken.albii.media.GroupMode
 import com.oken.albii.media.SortOrder
 import com.oken.albii.ui.grid.GridViewModel
@@ -122,12 +126,60 @@ fun SettingsScreen(
             }
 
             SettingsSection(title = stringResource(R.string.settings_section_info)) {
-                Box(modifier = Modifier.padding(16.dp)) {
+                Column(modifier = Modifier.padding(vertical = 8.dp)) {
                     Text(
-                        text = stringResource(R.string.settings_info_pending),
-                        style = MaterialTheme.typography.bodyMedium,
+                        text = stringResource(R.string.settings_info_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                     )
+                    InfoCategory.entries.forEach { category ->
+                        InfoCategoryBlock(
+                            category = category,
+                            enabledItems = state.enabledInfoItems,
+                            onCategoryChange = { viewModel.setInfoCategoryEnabled(category, it) },
+                            onItemChange = { item, enabled -> viewModel.setInfoItemEnabled(item, enabled) },
+                        )
+                    }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun InfoCategoryBlock(
+    category: InfoCategory,
+    enabledItems: Set<InfoItem>,
+    onCategoryChange: (Boolean) -> Unit,
+    onItemChange: (InfoItem, Boolean) -> Unit,
+) {
+    val items = InfoItem.entries.filter { it.category == category }
+    val allOn = items.all { it in enabledItems }
+    Column {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { onCategoryChange(!allOn) }
+                .padding(horizontal = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Checkbox(checked = allOn, onCheckedChange = onCategoryChange)
+            Text(
+                text = stringResource(category.labelRes),
+                style = MaterialTheme.typography.titleSmall,
+            )
+        }
+        items.forEach { item ->
+            val checked = item in enabledItems
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onItemChange(item, !checked) }
+                    .padding(start = 40.dp, end = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Checkbox(checked = checked, onCheckedChange = { onItemChange(item, it) })
+                Text(text = stringResource(item.labelRes), style = MaterialTheme.typography.bodyMedium)
             }
         }
     }

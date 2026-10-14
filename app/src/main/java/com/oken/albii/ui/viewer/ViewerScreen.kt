@@ -11,6 +11,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.calculatePan
 import androidx.compose.foundation.gestures.calculateZoom
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -25,6 +26,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Icon
@@ -48,10 +50,12 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.oken.albii.R
+import com.oken.albii.info.InfoItem
 import kotlin.math.max
 import kotlin.math.roundToInt
 
@@ -59,12 +63,14 @@ import kotlin.math.roundToInt
 data class ViewerItem(val uri: Uri, val isVideo: Boolean)
 
 private const val FULL_SIZE_MAX_PX = 2048
+private val SWIPE_UP_THRESHOLD = 80.dp
 
 /** 全画面ビューア。左右スワイプで前後へ移動し、ピンチで拡大・縮小する。 */
 @Composable
 fun ViewerScreen(
     items: List<ViewerItem>,
     startIndex: Int,
+    enabledInfoItems: Set<InfoItem>,
     onClose: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -73,9 +79,25 @@ fun ViewerScreen(
         pageCount = { items.size },
     )
     var zoomed by remember { mutableStateOf(false) }
+    var showInfo by remember { mutableStateOf(false) }
     val current = items.getOrNull(pagerState.currentPage)
+    val swipeUpThresholdPx = with(LocalDensity.current) { SWIPE_UP_THRESHOLD.toPx() }
+    var verticalDrag by remember { mutableFloatStateOf(0f) }
 
-    Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black)
+            .pointerInput(zoomed) {
+                // 下から上へのスワイプで写真情報を開く。拡大中は画像の移動を優先する。
+                detectVerticalDragGestures(
+                    onDragStart = { verticalDrag = 0f },
+                    onVerticalDrag = { _, delta -> verticalDrag += delta },
+                    onDragEnd = { if (!zoomed && verticalDrag < -swipeUpThresholdPx) showInfo = true },
+                    onDragCancel = { verticalDrag = 0f },
+                )
+            },
+    ) {
         HorizontalPager(
             state = pagerState,
             userScrollEnabled = !zoomed,
@@ -103,6 +125,14 @@ fun ViewerScreen(
             }
         }
 
+        if (showInfo && current != null) {
+            PhotoInfoSheet(
+                item = current,
+                enabledInfoItems = enabledInfoItems,
+                onDismiss = { showInfo = false },
+            )
+        }
+
         if (current != null) {
             Row(
                 modifier = Modifier
@@ -121,6 +151,11 @@ fun ViewerScreen(
                 } else {
                     IconButton(onClick = { launchExternal(context, current, Intent.ACTION_EDIT) }) {
                         Icon(Icons.Default.Edit, stringResource(R.string.viewer_edit), tint = Color.White)
+                    }
+                }
+                if (!current.isVideo) {
+                    IconButton(onClick = { showInfo = true }) {
+                        Icon(Icons.Default.Info, stringResource(R.string.info_button), tint = Color.White)
                     }
                 }
                 IconButton(onClick = { shareItem(context, current) }) {

@@ -5,6 +5,8 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.oken.albii.data.AppSettings
 import com.oken.albii.data.SettingsStore
+import com.oken.albii.info.InfoCategory
+import com.oken.albii.info.InfoItem
 import com.oken.albii.media.GridEntry
 import com.oken.albii.media.GroupMode
 import com.oken.albii.media.MediaItem
@@ -29,6 +31,7 @@ data class GridUiState(
     val sortOrder: SortOrder = SortOrder.NEWEST_AT_TOP,
     val groupMode: GroupMode = GroupMode.DAY,
     val gridColumns: Int = AppSettings.DEFAULT_GRID_COLUMNS,
+    val enabledInfoItems: Set<InfoItem> = InfoItem.defaults,
 )
 
 /** 端末のフォルダ（MediaStore のバケット）1 件分の要約。 */
@@ -63,6 +66,7 @@ class GridViewModel(application: Application) : AndroidViewModel(application) {
                         sortOrder = settings.sortOrder,
                         groupMode = settings.groupMode,
                         gridColumns = settings.gridColumns,
+                        enabledInfoItems = settings.enabledInfoItems,
                     )
                 }
                 rebuild()
@@ -90,6 +94,19 @@ class GridViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setGridColumns(columns: Int) {
         viewModelScope.launch { settingsStore.setGridColumns(columns) }
+    }
+
+    fun setInfoItemEnabled(item: InfoItem, enabled: Boolean) {
+        val current = _state.value.enabledInfoItems
+        val next = if (enabled) current + item else current - item
+        viewModelScope.launch { settingsStore.setInfoItems(next) }
+    }
+
+    fun setInfoCategoryEnabled(category: InfoCategory, enabled: Boolean) {
+        val current = _state.value.enabledInfoItems
+        val targets = InfoItem.entries.filter { it.category == category }.toSet()
+        val next = if (enabled) current + targets else current - targets
+        viewModelScope.launch { settingsStore.setInfoItems(next) }
     }
 
     /** 指定したフォルダ（バケット）の写真を、現在の並び順・グループで組み直す。null なら全件。 */
