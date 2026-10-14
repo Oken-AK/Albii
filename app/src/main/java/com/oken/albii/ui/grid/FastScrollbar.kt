@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -111,6 +112,7 @@ fun FastScrollbar(
                     color = Color.White,
                     modifier = Modifier
                         .align(Alignment.TopEnd)
+                        .wrapContentWidth(Alignment.End, unbounded = true)
                         .offset {
                             IntOffset(
                                 x = 0,

@@ -2,120 +2,85 @@ package com.oken.albii.ui.grid
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.GridItemSpan
-import androidx.compose.foundation.lazy.grid.LazyGridState
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.grid.rememberLazyGridState
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
-import androidx.compose.foundation.Image
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.oken.albii.R
-import com.oken.albii.media.GridEntry
 import com.oken.albii.media.GroupMode
 import com.oken.albii.media.SortOrder
-import com.oken.albii.media.toContentUri
-import java.time.ZoneId
+import com.oken.albii.ui.viewer.ViewerItem
 
-@OptIn(ExperimentalMaterial3Api::class)
+/** フォトタブ。並び替え・グループ切り替えと写真グリッドを表示する（枠は MainScreen が持つ）。 */
 @Composable
-fun PhotoGridScreen(viewModel: GridViewModel = viewModel()) {
+fun PhotoGridScreen(
+    onOpen: (items: List<ViewerItem>, startIndex: Int) -> Unit,
+    viewModel: GridViewModel = viewModel(),
+) {
     LaunchedEffect(Unit) { viewModel.load() }
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val zone = remember { ZoneId.systemDefault() }
-    val listState = rememberLazyGridState()
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.grid_title)) },
-                actions = {
-                    TextButton(onClick = {
-                        viewModel.setSortOrder(
-                            if (state.sortOrder == SortOrder.NEWEST_AT_TOP) {
-                                SortOrder.NEWEST_AT_BOTTOM
-                            } else {
-                                SortOrder.NEWEST_AT_TOP
-                            },
-                        )
-                    }) {
-                        Text(
-                            text = stringResource(
-                                if (state.sortOrder == SortOrder.NEWEST_AT_TOP) {
-                                    R.string.sort_newest_top
-                                } else {
-                                    R.string.sort_newest_bottom
-                                },
-                            ),
-                        )
-                    }
-                },
-            )
-        },
-    ) { padding ->
-        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-            GroupModeChips(
-                selected = state.groupMode,
-                onSelect = viewModel::setGroupMode,
-            )
-            Box(modifier = Modifier.fillMaxSize()) {
-                when {
-                    !state.isLoaded -> CenterText(stringResource(R.string.grid_loading))
-                    state.entries.isEmpty() -> CenterText(stringResource(R.string.grid_empty))
-                    else -> {
-                        MediaGrid(
-                            entries = state.entries,
-                            listState = listState,
-                            modifier = Modifier.fillMaxSize(),
-                        )
-                        FastScrollbar(
-                            listState = listState,
-                            entries = state.entries,
-                            zone = zone,
-                            modifier = Modifier.align(Alignment.CenterEnd),
-                        )
-                    }
-                }
+    Column(modifier = Modifier.fillMaxSize()) {
+        ControlRow(
+            groupMode = state.groupMode,
+            sortOrder = state.sortOrder,
+            onGroupSelect = viewModel::setGroupMode,
+            onToggleSort = {
+                viewModel.setSortOrder(
+                    if (state.sortOrder == SortOrder.NEWEST_AT_TOP) {
+                        SortOrder.NEWEST_AT_BOTTOM
+                    } else {
+                        SortOrder.NEWEST_AT_TOP
+                    },
+                )
+            },
+        )
+        Box(modifier = Modifier.fillMaxSize()) {
+            when {
+                !state.isLoaded -> CenterText(stringResource(R.string.grid_loading))
+                state.entries.isEmpty() -> CenterText(stringResource(R.string.grid_empty))
+                else -> MediaGridView(
+                    entries = state.entries,
+                    columns = state.gridColumns,
+                    onColumnsChange = viewModel::setGridColumns,
+                    onOpen = onOpen,
+                    modifier = Modifier.fillMaxSize(),
+                )
             }
         }
     }
 }
 
 @Composable
-private fun GroupModeChips(selected: GroupMode, onSelect: (GroupMode) -> Unit) {
+private fun ControlRow(
+    groupMode: GroupMode,
+    sortOrder: SortOrder,
+    onGroupSelect: (GroupMode) -> Unit,
+    onToggleSort: () -> Unit,
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 8.dp),
+            .padding(horizontal = 12.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         GroupMode.entries.forEach { mode ->
             FilterChip(
-                selected = mode == selected,
-                onClick = { onSelect(mode) },
+                selected = mode == groupMode,
+                onClick = { onGroupSelect(mode) },
                 label = {
                     Text(
                         stringResource(
@@ -130,78 +95,17 @@ private fun GroupModeChips(selected: GroupMode, onSelect: (GroupMode) -> Unit) {
                 modifier = Modifier.padding(end = 8.dp),
             )
         }
-    }
-}
-
-@Composable
-private fun MediaGrid(
-    entries: List<GridEntry>,
-    listState: LazyGridState,
-    modifier: Modifier = Modifier,
-) {
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(4),
-        state = listState,
-        modifier = modifier,
-        contentPadding = PaddingValues(end = 40.dp),
-    ) {
-        items(
-            count = entries.size,
-            key = { index ->
-                when (val entry = entries[index]) {
-                    is GridEntry.Header -> "header-${entry.groupKey}"
-                    is GridEntry.Media -> "media-${entry.item.isVideo}-${entry.item.id}"
-                }
-            },
-            span = { index ->
-                when (entries[index]) {
-                    is GridEntry.Header -> GridItemSpan(maxLineSpan)
-                    is GridEntry.Media -> GridItemSpan(1)
-                }
-            },
-        ) { index ->
-            when (val entry = entries[index]) {
-                is GridEntry.Header -> HeaderCell(entry.label)
-                is GridEntry.Media -> ThumbnailCell(entry)
-            }
-        }
-    }
-}
-
-@Composable
-private fun HeaderCell(label: String) {
-    Text(
-        text = label,
-        style = MaterialTheme.typography.titleSmall,
-        modifier = Modifier.padding(start = 12.dp, top = 16.dp, bottom = 6.dp),
-    )
-}
-
-@Composable
-private fun ThumbnailCell(entry: GridEntry.Media) {
-    val item = entry.item
-    val thumbnail = rememberThumbnail(remember(item) { item.toContentUri() })
-    Box(
-        modifier = Modifier
-            .aspectRatio(1f)
-            .padding(1.dp),
-    ) {
-        thumbnail?.let {
-            Image(
-                bitmap = it,
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize(),
-            )
-        }
-        if (item.isVideo) {
+        Box(modifier = Modifier.weight(1f))
+        TextButton(onClick = onToggleSort) {
             Text(
-                text = "▶",
-                color = Color.White,
-                style = MaterialTheme.typography.labelSmall,
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(4.dp),
+                text = stringResource(
+                    if (sortOrder == SortOrder.NEWEST_AT_TOP) {
+                        R.string.sort_newest_top
+                    } else {
+                        R.string.sort_newest_bottom
+                    },
+                ),
+                style = MaterialTheme.typography.labelLarge,
             )
         }
     }

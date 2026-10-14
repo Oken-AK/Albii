@@ -20,17 +20,23 @@ class MediaRepository(private val contentResolver: ContentResolver) {
             MediaStore.MediaColumns._ID,
             MediaStore.MediaColumns.DATE_TAKEN,
             MediaStore.MediaColumns.DATE_ADDED,
+            MediaStore.MediaColumns.BUCKET_ID,
+            MediaStore.MediaColumns.BUCKET_DISPLAY_NAME,
         )
         contentResolver.query(uri, projection, null, null, null)?.use { cursor ->
             val idColumn = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns._ID)
             val takenColumn = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DATE_TAKEN)
             val addedColumn = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DATE_ADDED)
+            val bucketIdColumn = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.BUCKET_ID)
+            val bucketNameColumn = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.BUCKET_DISPLAY_NAME)
             while (cursor.moveToNext()) {
                 val taken = if (cursor.isNull(takenColumn)) null else cursor.getLong(takenColumn)
                 into += MediaItem(
                     id = cursor.getLong(idColumn),
                     isVideo = isVideo,
                     dateTakenMillis = resolveDateMillis(taken, cursor.getLong(addedColumn)),
+                    bucketId = cursor.getLong(bucketIdColumn),
+                    bucketName = cursor.getString(bucketNameColumn).orEmpty(),
                 )
             }
         }

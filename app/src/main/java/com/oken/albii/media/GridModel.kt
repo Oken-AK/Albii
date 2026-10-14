@@ -14,6 +14,8 @@ data class MediaItem(
     val id: Long,
     val isVideo: Boolean,
     val dateTakenMillis: Long,
+    val bucketId: Long = 0L,
+    val bucketName: String = "",
 )
 
 sealed interface GridEntry {

@@ -1,0 +1,211 @@
+package com.oken.albii.ui.viewer
+
+import android.content.Context
+import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.ImageDecoder
+import android.net.Uri
+import android.util.Size
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import com.oken.albii.R
+import kotlin.math.max
+import kotlin.math.roundToInt
+
+/** ビューアに渡す 1 件分の情報。写真・動画どちらも content:// の URI で扱う。 */
+data class ViewerItem(val uri: Uri, val isVideo: Boolean)
+
+private const val FULL_SIZE_MAX_PX = 2048
+
+/** 全画面ビューア。左右スワイプで前後へ移動し、ピンチで拡大・縮小する。 */
+@Composable
+fun ViewerScreen(
+    items: List<ViewerItem>,
+    startIndex: Int,
+    onClose: () -> Unit,
+) {
+    val context = LocalContext.current
+    val pagerState = rememberPagerState(
+        initialPage = startIndex.coerceIn(0, max(0, items.size - 1)),
+        pageCount = { items.size },
+    )
+    var zoomed by remember { mutableStateOf(false) }
+    val current = items.getOrNull(pagerState.currentPage)
+
+    Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
+        HorizontalPager(
+            state = pagerState,
+            userScrollEnabled = !zoomed,
+            modifier = Modifier.fillMaxSize(),
+        ) { page ->
+            ViewerPage(
+                item = items[page],
+                onZoomChanged = { isZoomed -> zoomed = isZoomed },
+            )
+        }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .statusBarsPadding()
+                .padding(8.dp),
+            horizontalArrangement = Arrangement.Start,
+        ) {
+            IconButton(onClick = onClose) {
+                Icon(
+                    Icons.Default.Close,
+                    contentDescription = stringResource(R.string.viewer_close),
+                    tint = Color.White,
+                )
+            }
+        }
+
+        if (current != null) {
+            Row(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .navigationBarsPadding()
+                    .padding(bottom = 16.dp)
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(Color.Black.copy(alpha = 0.55f))
+                    .padding(horizontal = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (current.isVideo) {
+                    IconButton(onClick = { launchExternal(context, current, Intent.ACTION_VIEW) }) {
+                        Icon(Icons.Default.PlayArrow, stringResource(R.string.viewer_play), tint = Color.White)
+                    }
+                } else {
+                    IconButton(onClick = { launchExternal(context, current, Intent.ACTION_EDIT) }) {
+                        Icon(Icons.Default.Edit, stringResource(R.string.viewer_edit), tint = Color.White)
+                    }
+                }
+                IconButton(onClick = { shareItem(context, current) }) {
+                    Icon(Icons.Default.Share, stringResource(R.string.viewer_share), tint = Color.White)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ViewerPage(item: ViewerItem, onZoomChanged: (Boolean) -> Unit) {
+    val context = LocalContext.current
+    val bitmap by produceState<ImageBitmap?>(initialValue = null, key1 = item.uri) {
+        value = loadFullSize(context, item)?.asImageBitmap()
+    }
+    val preview = bitmap ?: return
+
+    var scale by remember { mutableFloatStateOf(1f) }
+    var offsetX by remember { mutableFloatStateOf(0f) }
+    var offsetY by remember { mutableFloatStateOf(0f) }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .pointerInput(item.uri) {
+                detectTransformGestures { _, pan, zoom, _ ->
+                    val newScale = (scale * zoom).coerceIn(1f, 5f)
+                    if (newScale > 1f) {
+                        offsetX += pan.x
+                        offsetY += pan.y
+                    } else {
+                        offsetX = 0f
+                        offsetY = 0f
+                    }
+                    scale = newScale
+                    onZoomChanged(newScale > 1.01f)
+                }
+            },
+        contentAlignment = Alignment.Center,
+    ) {
+        Image(
+            bitmap = preview,
+            contentDescription = null,
+            contentScale = ContentScale.Fit,
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                    translationX = offsetX
+                    translationY = offsetY
+                },
+        )
+    }
+}
+
+/** 画面に収まる範囲で大きめの画像をデコードする。動画は端末のサムネイルを使う。 */
+private fun loadFullSize(context: Context, item: ViewerItem): Bitmap? = runCatching {
+    if (item.isVideo) {
+        context.contentResolver.loadThumbnail(item.uri, Size(FULL_SIZE_MAX_PX, FULL_SIZE_MAX_PX), null)
+    } else {
+        val source = ImageDecoder.createSource(context.contentResolver, item.uri)
+        ImageDecoder.decodeBitmap(source) { decoder, info, _ ->
+            decoder.setAllocator(ImageDecoder.ALLOCATOR_SOFTWARE)
+            val longSide = max(info.size.width, info.size.height)
+            if (longSide > FULL_SIZE_MAX_PX) {
+                val ratio = FULL_SIZE_MAX_PX.toFloat() / longSide
+                decoder.setTargetSize(
+                    (info.size.width * ratio).roundToInt(),
+                    (info.size.height * ratio).roundToInt(),
+                )
+            }
+        }
+    }
+}.getOrNull()
+
+private fun launchExternal(context: Context, item: ViewerItem, action: String) {
+    val mime = context.contentResolver.getType(item.uri) ?: if (item.isVideo) "video/*" else "image/*"
+    val intent = Intent(action)
+        .setDataAndType(item.uri, mime)
+        .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+    context.startActivity(Intent.createChooser(intent, null))
+}
+
+private fun shareItem(context: Context, item: ViewerItem) {
+    val mime = context.contentResolver.getType(item.uri) ?: if (item.isVideo) "video/*" else "image/*"
+    val intent = Intent(Intent.ACTION_SEND)
+        .setType(mime)
+        .putExtra(Intent.EXTRA_STREAM, item.uri)
+        .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    context.startActivity(Intent.createChooser(intent, null))
+}
