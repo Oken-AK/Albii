@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -50,8 +51,15 @@ fun MediaGridView(
     onColumnsChange: (Int) -> Unit,
     onOpen: (items: List<ViewerItem>, startIndex: Int) -> Unit,
     listState: LazyGridState = rememberLazyGridState(),
+    newestAtBottom: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
+    LaunchedEffect(newestAtBottom, entries.isNotEmpty()) {
+        if (newestAtBottom && entries.isNotEmpty()) {
+            listState.scrollToItem(entries.lastIndex)
+        }
+    }
+
     val viewerItems = remember(entries) {
         entries.filterIsInstance<GridEntry.Media>().map {
             ViewerItem(it.item.toContentUri(), it.item.isVideo)

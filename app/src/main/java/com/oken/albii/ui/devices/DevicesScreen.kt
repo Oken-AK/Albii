@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.oken.albii.R
+import com.oken.albii.media.SortOrder
 import com.oken.albii.media.toContentUri
 import com.oken.albii.ui.grid.FolderSummary
 import com.oken.albii.ui.grid.GridViewModel
@@ -80,6 +81,7 @@ fun DevicesScreen(
                 columns = state.gridColumns,
                 onColumnsChange = viewModel::setGridColumns,
                 onOpen = onOpen,
+                newestAtBottom = state.sortOrder == SortOrder.NEWEST_AT_BOTTOM,
                 modifier = Modifier.fillMaxSize(),
             )
         }
