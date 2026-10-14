@@ -8,7 +8,9 @@ import android.net.Uri
 import android.util.Size
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.calculatePan
+import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -41,6 +43,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -142,17 +145,26 @@ private fun ViewerPage(item: ViewerItem, onZoomChanged: (Boolean) -> Unit) {
         modifier = Modifier
             .fillMaxSize()
             .pointerInput(item.uri) {
-                detectTransformGestures { _, pan, zoom, _ ->
-                    val newScale = (scale * zoom).coerceIn(1f, 5f)
-                    if (newScale > 1f) {
-                        offsetX += pan.x
-                        offsetY += pan.y
-                    } else {
-                        offsetX = 0f
-                        offsetY = 0f
-                    }
-                    scale = newScale
-                    onZoomChanged(newScale > 1.01f)
+                // 拡大していない 1 本指のスワイプは消費せず、外側の HorizontalPager に任せる。
+                awaitEachGesture {
+                    do {
+                        val event = awaitPointerEvent(PointerEventPass.Initial)
+                        val pinching = event.changes.count { it.pressed } >= 2
+                        if (pinching || scale > 1f) {
+                            val newScale = (scale * event.calculateZoom()).coerceIn(1f, 5f)
+                            if (newScale > 1f) {
+                                val pan = event.calculatePan()
+                                offsetX += pan.x
+                                offsetY += pan.y
+                            } else {
+                                offsetX = 0f
+                                offsetY = 0f
+                            }
+                            scale = newScale
+                            onZoomChanged(newScale > 1.01f)
+                            event.changes.forEach { it.consume() }
+                        }
+                    } while (event.changes.any { it.pressed })
                 }
             },
         contentAlignment = Alignment.Center,

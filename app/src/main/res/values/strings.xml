@@ -43,6 +43,9 @@
     <string name="album_remove_hint">長押しでアルバムから外せます</string>
     <string name="album_item_removed">アルバムから外しました</string>
     <string name="viewer_close">閉じる</string>
+    <string name="picker_title">写真を選択</string>
+    <string name="picker_add_count">追加（%1$d）</string>
+    <string name="picker_empty">追加できる写真・動画がありません</string>
     <string name="viewer_play">再生</string>
     <string name="viewer_edit">編集</string>
     <string name="viewer_share">共有</string>

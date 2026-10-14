@@ -2,7 +2,8 @@ package com.oken.albii.ui.grid
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.aspectRatio
@@ -18,13 +19,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
@@ -73,7 +74,7 @@ fun MediaGridView(
                 columns = GridCells.Fixed(columns),
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(end = 40.dp),
+                contentPadding = PaddingValues(0.dp),
             ) {
                 items(
                     count = entries.size,
@@ -112,8 +113,9 @@ fun MediaGridView(
 }
 
 /**
- * フレームワークの多点ジェスチャー検出（detectTransformGestures）でピンチを拾い、
- * 拡大なら列を減らし（大きく）、縮小なら列を増やす（小さく）。
+ * 2 本指のピンチを Initial パス（子より先）で拾い、拡大なら列を減らし（大きく）、縮小なら列を増やす（小さく）。
+ * 子の LazyGrid がドラッグを先に消費してしまうため、Initial パスで受け取って消費する。
+ * 1 本指のスクロールには触らない。
  */
 @Composable
 private fun PinchToChangeColumns(
@@ -122,24 +124,30 @@ private fun PinchToChangeColumns(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
-    var accumulated by remember { mutableFloatStateOf(1f) }
     val currentColumns by rememberUpdatedState(columns)
     val currentOnChange by rememberUpdatedState(onColumnsChange)
 
     Box(
         modifier = modifier.pointerInput(Unit) {
-            detectTransformGestures { _, _, zoom, _ ->
-                accumulated *= zoom
-                when {
-                    accumulated >= PINCH_STEP -> {
-                        currentOnChange((currentColumns - 1).coerceAtLeast(AppSettings.MIN_GRID_COLUMNS))
-                        accumulated = 1f
+            awaitEachGesture {
+                var accumulated = 1f
+                do {
+                    val event = awaitPointerEvent(PointerEventPass.Initial)
+                    if (event.changes.count { it.pressed } >= 2) {
+                        accumulated *= event.calculateZoom()
+                        event.changes.forEach { it.consume() }
+                        when {
+                            accumulated >= PINCH_STEP -> {
+                                currentOnChange((currentColumns - 1).coerceAtLeast(AppSettings.MIN_GRID_COLUMNS))
+                                accumulated = 1f
+                            }
+                            accumulated <= 1f / PINCH_STEP -> {
+                                currentOnChange((currentColumns + 1).coerceAtMost(AppSettings.MAX_GRID_COLUMNS))
+                                accumulated = 1f
+                            }
+                        }
                     }
-                    accumulated <= 1f / PINCH_STEP -> {
-                        currentOnChange((currentColumns + 1).coerceAtMost(AppSettings.MAX_GRID_COLUMNS))
-                        accumulated = 1f
-                    }
-                }
+                } while (event.changes.any { it.pressed })
             }
         },
     ) {

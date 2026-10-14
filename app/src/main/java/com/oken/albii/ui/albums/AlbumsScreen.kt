@@ -1,10 +1,7 @@
 package com.oken.albii.ui.albums
 
 import android.net.Uri
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.compose.BackHandler
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -170,9 +167,19 @@ private fun AlbumDetail(
     onDeleted: () -> Unit,
 ) {
     val items by viewModel.observeItems(album.id).collectAsState(initial = emptyList())
-    val pickMedia = rememberLauncherForActivityResult(
-        ActivityResultContracts.PickMultipleVisualMedia(maxItems = 100),
-    ) { uris: List<Uri> -> viewModel.addItems(album.id, uris) }
+    var showPicker by rememberSaveable { mutableStateOf(false) }
+
+    if (showPicker) {
+        MediaPickerScreen(
+            excludedUris = items.map { it.uri }.toSet(),
+            onConfirm = { uris ->
+                viewModel.addItems(album.id, uris)
+                showPicker = false
+            },
+            onClose = { showPicker = false },
+        )
+        return
+    }
 
     Column(modifier = Modifier.fillMaxSize()) {
         Row(
@@ -189,9 +196,7 @@ private fun AlbumDetail(
                 style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.weight(1f),
             )
-            IconButton(onClick = {
-                pickMedia.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo))
-            }) {
+            IconButton(onClick = { showPicker = true }) {
                 Icon(Icons.Default.Add, contentDescription = stringResource(R.string.album_add_photos))
             }
             IconButton(onClick = {
