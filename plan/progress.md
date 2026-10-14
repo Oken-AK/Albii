@@ -43,8 +43,17 @@
 - iOS 風 UI: `ui/theme/Theme.kt`（配色・角丸・グループ背景）。ぼかし・アニメーションは未実装
 - 詳細: [ADR-0003](../docs/adr/ADR-0003-navigation-settings-and-albums.md)
 
+## 再計画2（実機フィードバック2回目）の実装状況
+- ピンチ列変更: 親の Initial パスで2本指を検知（`PinchToChangeColumns`）。子の LazyGrid より先に拾う
+- ビューア横スワイプ: 等倍時は1本指をPagerに渡す。拡大時のみ消費（`ViewerPage`）
+- スクロールバー: グリッドとの重なりを許可（contentPadding 0）。操作しないと1.5秒後にフェードアウト（`FastScrollbar`）
+- アルバムへの写真追加: システムピッカーをやめ、アプリ内の `ui/albums/MediaPickerScreen.kt`（4列・複数選択）に変更
+- 未着手: アルバム画面の見た目調整、Apple/Google Photos 風 UI の仕上げ、ADR-0004（ジェスチャー方針）
+- 詳細: 実機確認待ち
+
 ## 次のアクション
-- 実機確認（インストールは `install-debug-device.bat`）: スクロールバー、ピンチ、ビューア、タブ、アルバム追加、端末フォルダ
+- 実機確認（インストールは `install-debug-device.bat`）: ピンチ、ビューア横スワイプ、スクロールバー自動非表示、アプリ内写真追加
+- 見た目の調整（アルバム画面・全体の Apple/Google Photos 風）を次フェーズで実施
 - Phase 2b: 上スワイプの情報パネル、設定の項目チェック、Media3 による動画再生、ピント位置の可視化
 - iOS 風 UI の残り（ぼかし、アニメーション、ジェスチャーの統一）
 
