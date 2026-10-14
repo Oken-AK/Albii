@@ -32,6 +32,7 @@ import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -56,6 +57,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.oken.albii.R
 import com.oken.albii.info.InfoItem
+import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.roundToInt
 
@@ -100,11 +102,11 @@ fun ViewerScreen(
     ) {
         HorizontalPager(
             state = pagerState,
-            userScrollEnabled = !zoomed,
             modifier = Modifier.fillMaxSize(),
         ) { page ->
             ViewerPage(
                 item = items[page],
+                isActive = pagerState.currentPage == page,
                 onZoomChanged = { isZoomed -> zoomed = isZoomed },
             )
         }
@@ -167,7 +169,7 @@ fun ViewerScreen(
 }
 
 @Composable
-private fun ViewerPage(item: ViewerItem, onZoomChanged: (Boolean) -> Unit) {
+private fun ViewerPage(item: ViewerItem, isActive: Boolean, onZoomChanged: (Boolean) -> Unit) {
     val context = LocalContext.current
     val bitmap by produceState<ImageBitmap?>(initialValue = null, key1 = item.uri) {
         value = loadFullSize(context, item)?.asImageBitmap()
@@ -179,6 +181,15 @@ private fun ViewerPage(item: ViewerItem, onZoomChanged: (Boolean) -> Unit) {
     var offsetY by remember { mutableFloatStateOf(0f) }
     var viewport by remember { mutableStateOf(IntSize.Zero) }
 
+    // ページが離れたら拡大を戻す。戻ってきたときに拡大されたままにしない。
+    LaunchedEffect(isActive) {
+        if (!isActive) {
+            scale = 1f
+            offsetX = 0f
+            offsetY = 0f
+        }
+    }
+
     // 画像の縁が画面の内側に留まる最大移動量。中心基準で拡大するため (scale - 1) / 2 倍の半分。
     fun maxOffsetX(s: Float) = viewport.width * (s - 1f) / 2f
     fun maxOffsetY(s: Float) = viewport.height * (s - 1f) / 2f
@@ -189,6 +200,7 @@ private fun ViewerPage(item: ViewerItem, onZoomChanged: (Boolean) -> Unit) {
             .onSizeChanged { viewport = it }
             .pointerInput(item.uri) {
                 // 拡大していない 1 本指のスワイプは消費せず、外側の HorizontalPager に任せる。
+                // 拡大中でも、縁に達した状態で外向きに引いた横移動は消費せず、ページ送りに渡す。
                 awaitEachGesture {
                     do {
                         val event = awaitPointerEvent(PointerEventPass.Initial)
@@ -199,6 +211,14 @@ private fun ViewerPage(item: ViewerItem, onZoomChanged: (Boolean) -> Unit) {
                                 val pan = event.calculatePan()
                                 val mx = maxOffsetX(newScale)
                                 val my = maxOffsetY(newScale)
+                                val pushingOutX = !pinching &&
+                                    abs(pan.x) > abs(pan.y) &&
+                                    ((pan.x > 0f && offsetX >= mx) || (pan.x < 0f && offsetX <= -mx))
+                                if (pushingOutX) {
+                                    scale = newScale
+                                    onZoomChanged(true)
+                                    continue
+                                }
                                 offsetX = (offsetX + pan.x).coerceIn(-mx, mx)
                                 offsetY = (offsetY + pan.y).coerceIn(-my, my)
                             } else {
