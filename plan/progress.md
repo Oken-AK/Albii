@@ -7,7 +7,8 @@
 
 ## 現在のステータス
 - **プロジェクト**: Albii
-- **現在地**: Phase 1（権限 + MediaStore + グリッド）実装済み。ビルド・単体テスト通過。実機未確認
+- **現在地**: Phase 1 完了。再計画（実機フィードバック）の実装まで完了。ビルド通過。実機未確認
+- **残り**: Phase 2b（情報パネル・設定のチェック項目・動画再生）は未着手
 - **作業ブランチ**: `feature/android-album-app`
 
 ## 要件・計画
@@ -32,10 +33,20 @@
 - Android Studio は winget の管理者インストールが UAC 待ちで止まったため、zip 版の SDK とコマンドラインで代替。Studio で開けば同じプロジェクトを扱える
 - `local.properties`（`sdk.dir`）は各自の環境で作るもので、Git 管理外
 
+## 再計画（実機フィードバック後）の実装状況
+- 右端スクロールバーのラベル二重表示: ラベルを幅無制限で描画する形に修正（実機未確認）
+- ピンチで列数変更: `detectTransformGestures`（`ui/grid/MediaGridView.kt`）。列数は 2〜6、既定 4
+- 設定（DataStore）とハンバーガーメニュー → 設定画面: `data/SettingsStore.kt`、`ui/main/MainScreen.kt`、`ui/settings/SettingsScreen.kt`
+- 写真の全画面表示: `ui/viewer/ViewerScreen.kt`（横スワイプ、ピンチ拡大）
+- 下部タブ: フォト / アルバム（Room）/ 端末（フォルダ別）
+- アルバム: `data/album/AlbumDatabase.kt`、`ui/albums/`
+- iOS 風 UI: `ui/theme/Theme.kt`（配色・角丸・グループ背景）。ぼかし・アニメーションは未実装
+- 詳細: [ADR-0003](../docs/adr/ADR-0003-navigation-settings-and-albums.md)
+
 ## 次のアクション
-- Phase 1 の実機確認（権限ダイアログ、グリッド表示、並び順、日別・月別、右端スクロールバー）
-- 実機で大量データ（数千件以上）のスクロールを確認し、完了条件を満たすか判定
-- Phase 2: 詳細表示（フルサイズ表示・上スワイプで情報パネル）
+- 実機確認（インストールは `install-debug-device.bat`）: スクロールバー、ピンチ、ビューア、タブ、アルバム追加、端末フォルダ
+- Phase 2b: 上スワイプの情報パネル、設定の項目チェック、Media3 による動画再生、ピント位置の可視化
+- iOS 風 UI の残り（ぼかし、アニメーション、ジェスチャーの統一）
 
 ## 発生している課題・特記事項
 - Coil 3 は KMP 版 Compose を引き込み、ビルドが壊れたため撤回（ADR-0002）
