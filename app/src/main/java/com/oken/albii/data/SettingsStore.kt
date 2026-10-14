@@ -4,7 +4,9 @@ import android.content.Context
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.oken.albii.info.InfoItem
 import com.oken.albii.media.GroupMode
 import com.oken.albii.media.SortOrder
 import kotlinx.coroutines.flow.Flow
@@ -14,6 +16,7 @@ data class AppSettings(
     val sortOrder: SortOrder = SortOrder.NEWEST_AT_TOP,
     val groupMode: GroupMode = GroupMode.DAY,
     val gridColumns: Int = DEFAULT_GRID_COLUMNS,
+    val enabledInfoItems: Set<InfoItem> = InfoItem.defaults,
 ) {
     companion object {
         const val DEFAULT_GRID_COLUMNS = 4
@@ -30,6 +33,7 @@ class SettingsStore(private val context: Context) {
     private val sortKey = stringPreferencesKey("sort_order")
     private val groupKey = stringPreferencesKey("group_mode")
     private val columnsKey = intPreferencesKey("grid_columns")
+    private val infoItemsKey = stringSetPreferencesKey("info_items")
 
     val settings: Flow<AppSettings> = context.settingsDataStore.data.map { prefs ->
         AppSettings(
@@ -39,7 +43,15 @@ class SettingsStore(private val context: Context) {
                 ?: GroupMode.DAY,
             gridColumns = (prefs[columnsKey] ?: AppSettings.DEFAULT_GRID_COLUMNS)
                 .coerceIn(AppSettings.MIN_GRID_COLUMNS, AppSettings.MAX_GRID_COLUMNS),
+            enabledInfoItems = prefs[infoItemsKey]
+                ?.mapNotNull { name -> runCatching { InfoItem.valueOf(name) }.getOrNull() }
+                ?.toSet()
+                ?: InfoItem.defaults,
         )
+    }
+
+    suspend fun setInfoItems(value: Set<InfoItem>) {
+        context.settingsDataStore.edit { it[infoItemsKey] = value.map { item -> item.name }.toSet() }
     }
 
     suspend fun setSortOrder(value: SortOrder) {
