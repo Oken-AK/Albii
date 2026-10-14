@@ -9,7 +9,10 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 /** iOS 風の配色（システムブルー・グループ背景）。 */
 private val IosBlue = Color(0xFF007AFF)
@@ -42,12 +45,21 @@ private val IosShapes = Shapes(
     extraLarge = RoundedCornerShape(24.dp),
 )
 
+/** 見出しを太めにした iOS 風の書体。 */
+private val IosTypography = Typography(
+    headlineMedium = TextStyle(fontWeight = FontWeight.Bold, fontSize = 28.sp, lineHeight = 34.sp),
+    titleLarge = TextStyle(fontWeight = FontWeight.SemiBold, fontSize = 20.sp, lineHeight = 26.sp),
+    titleMedium = TextStyle(fontWeight = FontWeight.SemiBold, fontSize = 17.sp, lineHeight = 22.sp),
+    bodyLarge = TextStyle(fontSize = 17.sp, lineHeight = 22.sp),
+    labelMedium = TextStyle(fontSize = 13.sp, lineHeight = 18.sp),
+)
+
 @Composable
 fun AlbiiTheme(content: @Composable () -> Unit) {
     MaterialTheme(
         colorScheme = if (isSystemInDarkTheme()) DarkScheme else LightScheme,
         shapes = IosShapes,
-        typography = Typography(),
+        typography = IosTypography,
         content = content,
     )
 }
