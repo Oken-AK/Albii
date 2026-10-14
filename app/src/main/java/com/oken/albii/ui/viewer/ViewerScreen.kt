@@ -46,8 +46,10 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.oken.albii.R
 import kotlin.math.max
@@ -140,10 +142,16 @@ private fun ViewerPage(item: ViewerItem, onZoomChanged: (Boolean) -> Unit) {
     var scale by remember { mutableFloatStateOf(1f) }
     var offsetX by remember { mutableFloatStateOf(0f) }
     var offsetY by remember { mutableFloatStateOf(0f) }
+    var viewport by remember { mutableStateOf(IntSize.Zero) }
+
+    // 画像の縁が画面の内側に留まる最大移動量。中心基準で拡大するため (scale - 1) / 2 倍の半分。
+    fun maxOffsetX(s: Float) = viewport.width * (s - 1f) / 2f
+    fun maxOffsetY(s: Float) = viewport.height * (s - 1f) / 2f
 
     Box(
         modifier = Modifier
             .fillMaxSize()
+            .onSizeChanged { viewport = it }
             .pointerInput(item.uri) {
                 // 拡大していない 1 本指のスワイプは消費せず、外側の HorizontalPager に任せる。
                 awaitEachGesture {
@@ -154,8 +162,10 @@ private fun ViewerPage(item: ViewerItem, onZoomChanged: (Boolean) -> Unit) {
                             val newScale = (scale * event.calculateZoom()).coerceIn(1f, 5f)
                             if (newScale > 1f) {
                                 val pan = event.calculatePan()
-                                offsetX += pan.x
-                                offsetY += pan.y
+                                val mx = maxOffsetX(newScale)
+                                val my = maxOffsetY(newScale)
+                                offsetX = (offsetX + pan.x).coerceIn(-mx, mx)
+                                offsetY = (offsetY + pan.y).coerceIn(-my, my)
                             } else {
                                 offsetX = 0f
                                 offsetY = 0f
