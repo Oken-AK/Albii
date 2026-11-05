@@ -1,5 +1,6 @@
 package com.oken.albii.ui.grid
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -41,6 +42,7 @@ private const val PINCH_STEP = 1.25f
  * 写真の一覧（列・ヘッダー・右端のスクロールバー・ピンチで列数変更）。
  * [onOpen] には表示中の写真・動画の一覧と、タップされた位置を渡す。
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MediaGridView(
     entries: List<GridEntry>,
@@ -92,10 +94,14 @@ fun MediaGridView(
                     },
                 ) { index ->
                     when (val entry = entries[index]) {
-                        is GridEntry.Header -> HeaderCell(entry.label)
+                        is GridEntry.Header -> HeaderCell(
+                            label = entry.label,
+                            modifier = Modifier.animateItemPlacement(),
+                        )
                         is GridEntry.Media -> ThumbnailCell(
                             entry = entry,
                             onClick = { onOpen(viewerItems, mediaIndexAt[index]) },
+                            modifier = Modifier.animateItemPlacement(),
                         )
                     }
                 }
@@ -156,20 +162,20 @@ private fun PinchToChangeColumns(
 }
 
 @Composable
-private fun HeaderCell(label: String) {
+private fun HeaderCell(label: String, modifier: Modifier = Modifier) {
     Text(
         text = label,
         style = MaterialTheme.typography.titleSmall,
-        modifier = Modifier.padding(start = 12.dp, top = 16.dp, bottom = 6.dp),
+        modifier = modifier.padding(start = 12.dp, top = 16.dp, bottom = 6.dp),
     )
 }
 
 @Composable
-private fun ThumbnailCell(entry: GridEntry.Media, onClick: () -> Unit) {
+private fun ThumbnailCell(entry: GridEntry.Media, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val item = entry.item
     val thumbnail = rememberThumbnail(remember(item) { item.toContentUri() })
     Box(
-        modifier = Modifier
+        modifier = modifier
             .aspectRatio(1f)
             .padding(1.dp)
             .clickable(onClick = onClick),
