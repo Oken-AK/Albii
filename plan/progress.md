@@ -9,7 +9,8 @@
 - **プロジェクト**: Albii
 - **現在地**: Phase A（120fps・スクロール / ピンチの滑らかさ）の計測・一部改善まで完了。ブランチ `perf/scroll-pinch-120fps`
 - **直近の変更**: 34ebda8（サムネ読み込み同時実行 4 本、p95 40ms→11ms、ジャンク 5.5%→2.9%）、34cc99c（拡大中の縁からの横スワイプでページ送り）
-- **残り**: Macrobenchmark / Baseline Profile 導入、ピンチ列変更のアニメーション、実機での拡大横移動の確認
+- **残り**: 実機でのスクロール感の確認（ユーザー）、拡大中の縁からの横移動の確認、ピンチ列変更のアニメーション
+- **Macrobenchmark**: 作りかけは `git stash`（"macrobenchmark WIP (paused)"）に退避。実機テストは簡易化のため一時中止
 
 ## 要件・計画
 - 計画書: [android-album-app-plan.md](./android-album-app-plan.md)
@@ -41,7 +42,8 @@
 ## 発生している課題・特記事項
 - Coil 3 は KMP 版 Compose を引き込みビルドが壊れたため撤回（ADR-0002）
 - `loadThumbnail` で動画・HEIC が取れるかは未確認
-- 拡大中の横スワイプは実装済み（実機で拡大中の縁を確認待ち）。120fps の数値判定は Macrobenchmark 未導入のため未実施
+- 拡大中の横スワイプは実装済み（実機で拡大中の縁を確認待ち）。
+- 実機スクロール計測（adb で上下スクロール 12 回、dumpsys gfxinfo）: 378 フレーム、ジャンク 3.7%、50% 5ms、95% 24ms、99% 150ms。adb のスワイプは指と違うため参考値。
 - `AlbumDatabase.create()` は VM 1つ前提。複数インスタンスは未対応
 
 ## AIへの伝言
