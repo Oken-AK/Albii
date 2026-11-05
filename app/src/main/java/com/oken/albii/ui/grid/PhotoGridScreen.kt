@@ -57,6 +57,7 @@ fun PhotoGridScreen(
                     columns = state.gridColumns,
                     onColumnsChange = viewModel::setGridColumns,
                     onOpen = onOpen,
+                    newestAtBottom = state.sortOrder == SortOrder.NEWEST_AT_BOTTOM,
                     modifier = Modifier.fillMaxSize(),
                 )
             }
