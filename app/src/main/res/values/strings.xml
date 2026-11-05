@@ -83,6 +83,10 @@
     <string name="picker_add_count">追加（%1$d）</string>
     <string name="picker_empty">追加できる写真・動画がありません</string>
     <string name="viewer_play">再生</string>
+    <string name="viewer_pause">一時停止</string>
+    <string name="video_error">この動画は再生できません</string>
     <string name="viewer_edit">編集</string>
     <string name="viewer_share">共有</string>
+    <string name="external_app_not_found">この操作に対応するアプリが見つかりません</string>
+    <string name="external_open_denied">ファイルを外部アプリで開けませんでした</string>
 </resources>

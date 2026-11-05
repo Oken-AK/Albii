@@ -44,6 +44,8 @@
 | ADR-0002 | サムネイル取得と手動DI（Coil・Paging撤回） | Accepted |
 | ADR-0003 | 画面遷移・設定（DataStore）・アルバム（Room） | Accepted |
 | ADR-0004 | ジェスチャー処理の方針とアプリ内の写真選択 | Accepted |
+| ADR-0005 | 写真情報は ExifInterface で読み、項目ごとに表示を切り替える | Accepted |
+| ADR-0006 | 動画はアプリ内で Media3 ExoPlayer により再生し、シークバー操作に映像を追従させる | Accepted |
 | ADR-0001 | Kotlin + Jetpack Compose 採用 | Accepted |
 | ADR-0002 | サムネイル・一覧取得・DI の方針変更（Coil / Paging 3 撤回、手動DI） | Accepted |
 | ADR-0001 | Androidアプリの技術スタックに Kotlin + Jetpack Compose を採用する | Accepted |
