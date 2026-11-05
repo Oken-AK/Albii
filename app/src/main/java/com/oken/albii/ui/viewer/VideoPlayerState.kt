@@ -32,20 +32,17 @@ import androidx.media3.common.Timeline
 import androidx.media3.common.VideoSize
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.exoplayer.SeekParameters
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
-/** スクラブ中に seekTo を送る最小間隔。短すぎるとデコーダーのフラッシュが続き、映像が更新されなくなる。 */
-private const val SCRUB_SEEK_INTERVAL_MS = 50L
-
-/** スクラブ中のシーク方式。EXACT はコマ単位で追従する。キーフレーム間隔が長く重い動画で遅い場合は CLOSEST_SYNC を検討する。 */
-@OptIn(UnstableApi::class)
-private val SCRUB_SEEK_PARAMETERS: SeekParameters = SeekParameters.EXACT
-
+/**
+ * スクラブ中に seekTo を送る最小間隔。スクラブモードは最新のシークだけを処理するので間引きは軽くてよいが、
+ * タッチイベントごと（120Hz 級）に送ると無駄なので、およそ 1 フレームに 1 回に抑える。
+ */
+private const val SCRUB_SEEK_INTERVAL_MS = 16L
 /**
  * 動画 1 本ぶんの再生状態。ExoPlayer を包み、Compose から読める状態と操作（再生・一時停止・スクラブ）を公開する。
  * 生成した ExoPlayer は Composition から外れたとき（[onForgotten] / [onAbandoned]）に必ず解放する。
@@ -71,8 +68,6 @@ class VideoPlayerState(
 
     private val throttle = ScrubSeekThrottle(SCRUB_SEEK_INTERVAL_MS)
     private var trailingSeek: Job? = null
-    private var resumeAfterScrub = false
-    private var lastScrubSeekMs = -1L
     private var released = false
 
     /** 再生する意思があるか（バッファリング待ちでも true）。再生ボタンのアイコン切り替えに使う。 */
@@ -180,15 +175,17 @@ class VideoPlayerState(
         if (!released) player.pause()
     }
 
-    /** スクラブ開始。再生中だったかを覚えて一時停止し、シーク方式をスクラブ用にする。 */
+    /**
+     * スクラブ開始。ExoPlayer のスクラブモード（頻繁なシーク向けの最適化。再生は自動で抑制され、音声も止まる）に入る。
+     * 再生中だったかどうかは playWhenReady がそのまま保持するので、終了時に自動で再開する。
+     * 再生が終端に達していた場合だけは、スクラブ後に勝手に再生が始まらないよう一時停止にしておく。
+     */
     fun beginScrub() {
         if (released || isScrubbing) return
         isScrubbing = true
-        resumeAfterScrub = player.playWhenReady && !isEnded
-        lastScrubSeekMs = -1L
         throttle.reset()
-        player.pause()
-        player.setSeekParameters(SCRUB_SEEK_PARAMETERS)
+        if (isEnded) player.pause()
+        player.setScrubbingModeEnabled(true)
     }
 
     /** シークバーの位置（0〜1）へ映像を追従させる。前方向・後方向の区別なく、最新の位置を優先して送る。 */
@@ -198,20 +195,19 @@ class VideoPlayerState(
         val target = scrubTargetMs(scrubFraction, durationMs)
         positionMs = target
         val due = throttle.submit(target, SystemClock.uptimeMillis())
-        if (due != null) seekWhileScrubbing(due) else scheduleTrailingSeek()
+        if (due != null) player.seekTo(due) else scheduleTrailingSeek()
     }
 
-    /** スクラブ終了。指を離した位置へ確定し、再生中だったなら再開する。 */
+    /** スクラブ終了。通常モードへ戻したうえで、指を離した位置へ確定シークする（再生中だったなら自動で再開する）。 */
     fun endScrub() {
         if (released || !isScrubbing) return
         isScrubbing = false
         trailingSeek?.cancel()
         throttle.reset()
-        player.setSeekParameters(SeekParameters.EXACT)
+        player.setScrubbingModeEnabled(false)
         val target = scrubTargetMs(scrubFraction, durationMs)
-        if (target != lastScrubSeekMs) player.seekTo(target)
+        player.seekTo(target)
         positionMs = target
-        if (resumeAfterScrub) player.play()
     }
 
     /** 再生中は描画フレームごとに位置を読み、シークバーのつまみを滑らかに動かす。 */
@@ -228,11 +224,6 @@ class VideoPlayerState(
         }
     }
 
-    private fun seekWhileScrubbing(positionMs: Long) {
-        lastScrubSeekMs = positionMs
-        player.seekTo(positionMs)
-    }
-
     /** 間引かれて保留になった最新位置を、送れる時刻になったら送る。 */
     private fun scheduleTrailingSeek() {
         if (trailingSeek?.isActive == true) return
@@ -240,7 +231,7 @@ class VideoPlayerState(
             while (true) {
                 val wait = throttle.delayUntilDueMs(SystemClock.uptimeMillis()) ?: break
                 if (wait > 0L) delay(wait)
-                throttle.takeIfDue(SystemClock.uptimeMillis())?.let { seekWhileScrubbing(it) }
+                throttle.takeIfDue(SystemClock.uptimeMillis())?.let { player.seekTo(it) }
             }
         }
     }

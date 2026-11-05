@@ -52,6 +52,8 @@ fun VideoControls(state: VideoPlayerState, modifier: Modifier = Modifier) {
         else -> 0f
     }
     val showsPause = state.playWhenReady && !state.isEnded
+    // 終端を指したときの実際のシーク先は最終フレームを出すため 1 ms 手前。表示は総時間に揃える。
+    val shownMs = if (state.isScrubbing && state.scrubFraction >= 1f) duration else state.positionMs
 
     Row(
         modifier = modifier
@@ -68,7 +70,7 @@ fun VideoControls(state: VideoPlayerState, modifier: Modifier = Modifier) {
             )
         }
         Text(
-            text = formatPlaybackTime(state.positionMs),
+            text = formatPlaybackTime(shownMs),
             color = Color.White,
             style = MaterialTheme.typography.labelMedium,
         )
