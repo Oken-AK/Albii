@@ -1,7 +1,6 @@
 package com.oken.albii.ui.viewer
 
 import android.content.Context
-import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.ImageDecoder
 import android.net.Uri
@@ -147,11 +146,11 @@ fun ViewerScreen(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 if (current.isVideo) {
-                    IconButton(onClick = { launchExternal(context, current, Intent.ACTION_VIEW) }) {
+                    IconButton(onClick = { launchView(context, current) }) {
                         Icon(Icons.Default.PlayArrow, stringResource(R.string.viewer_play), tint = Color.White)
                     }
                 } else {
-                    IconButton(onClick = { launchExternal(context, current, Intent.ACTION_EDIT) }) {
+                    IconButton(onClick = { launchEdit(context, current) }) {
                         Icon(Icons.Default.Edit, stringResource(R.string.viewer_edit), tint = Color.White)
                     }
                 }
@@ -160,7 +159,7 @@ fun ViewerScreen(
                         Icon(Icons.Default.Info, stringResource(R.string.info_button), tint = Color.White)
                     }
                 }
-                IconButton(onClick = { shareItem(context, current) }) {
+                IconButton(onClick = { launchShare(context, current) }) {
                     Icon(Icons.Default.Share, stringResource(R.string.viewer_share), tint = Color.White)
                 }
             }
@@ -269,20 +268,3 @@ private fun loadFullSize(context: Context, item: ViewerItem): Bitmap? = runCatch
         }
     }
 }.getOrNull()
-
-private fun launchExternal(context: Context, item: ViewerItem, action: String) {
-    val mime = context.contentResolver.getType(item.uri) ?: if (item.isVideo) "video/*" else "image/*"
-    val intent = Intent(action)
-        .setDataAndType(item.uri, mime)
-        .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
-    context.startActivity(Intent.createChooser(intent, null))
-}
-
-private fun shareItem(context: Context, item: ViewerItem) {
-    val mime = context.contentResolver.getType(item.uri) ?: if (item.isVideo) "video/*" else "image/*"
-    val intent = Intent(Intent.ACTION_SEND)
-        .setType(mime)
-        .putExtra(Intent.EXTRA_STREAM, item.uri)
-        .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-    context.startActivity(Intent.createChooser(intent, null))
-}

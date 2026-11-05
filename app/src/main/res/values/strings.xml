@@ -85,4 +85,6 @@
     <string name="viewer_play">再生</string>
     <string name="viewer_edit">編集</string>
     <string name="viewer_share">共有</string>
+    <string name="external_app_not_found">この操作に対応するアプリが見つかりません</string>
+    <string name="external_open_denied">ファイルを外部アプリで開けませんでした</string>
 </resources>
