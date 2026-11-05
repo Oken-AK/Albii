@@ -21,6 +21,15 @@ android {
         release {
             isMinifyEnabled = false
         }
+        // 実機での滑らかさ計測用。release と同じ R8 最適化を掛け、デバッグ署名でそのまま入れられる。
+        create("releaseMeasure") {
+            initWith(getByName("release"))
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            signingConfig = signingConfigs.getByName("debug")
+            matchingFallbacks += "release"
+        }
     }
 
     compileOptions {

@@ -7,10 +7,10 @@
 
 ## 現在のステータス
 - **プロジェクト**: Albii
-- **現在地**: Phase A（120fps・スクロール / ピンチの滑らかさ）の実装は完了。PR #3〜#6 は全て main にマージ済み。ブランチ `docs/progress-after-merges`
-- **直近の変更**: PR #5（ピンチで列数を変えるときの滑らかな移動アニメーション）、PR #6（下が最新のとき開いた時点で最新＝一番下から表示）、PR #4（実機スクロール計測の記録）。ビルド・単体テスト成功を確認済み
-- **残り**: 実機確認待ち（ユーザー）: スクロール感、拡大中の縁からの横移動、ピンチ列変更アニメーション、下が最新設定での初期表示位置。Macrobenchmark / Baseline Profile は保留
-- **Macrobenchmark**: 作りかけは `git stash`（"macrobenchmark WIP (paused)"）に退避。実機テストは簡易化のため一時中止
+- **現在地**: 滑らかさ改善の見直し中。P0（release 相当ビルドでの再計測）完了。ブランチ `perf/release-baseline-measure`
+- **直近の変更**: `releaseMeasure` buildType（R8 minify・デバッグ署名）と `install-release-measure-device.bat` を追加。計測の結果、「120Hz 感が弱い」の主因は debug ビルドで評価していたこと（下記）
+- **残り**: 実機で releaseMeasure ビルドの体感確認（ユーザー）。その結果で、Coil 化・Telephoto 化・ピンチ連続スケール等のリファクタ（下記計画 P1〜P6）の範囲を決める。ビューア（画像デコード待ちで空→遅れて表示、先読みなし）は release でも残る課題
+- **Macrobenchmark**: 作りかけは `git stash`（"macrobenchmark WIP (paused)"）に退避
 
 ## 要件・計画
 - 計画書: [android-album-app-plan.md](./android-album-app-plan.md)
@@ -43,8 +43,17 @@
 - Coil 3 は KMP 版 Compose を引き込みビルドが壊れたため撤回（ADR-0002）
 - `loadThumbnail` で動画・HEIC が取れるかは未確認
 - 拡大中の横スワイプは実装済み（実機で拡大中の縁を確認待ち）。
-- 実機スクロール計測（adb で上下スクロール 12 回、dumpsys gfxinfo）: 378 フレーム、ジャンク 3.7%、50% 5ms、95% 24ms、99% 150ms。adb のスワイプは指と違うため参考値。
+- 実機スクロール計測（Pixel 10a・120Hz、adb で上下スクロール 12 往復、dumpsys gfxinfo。adb のスワイプは指と違うため参考値）:
+
+  | ビルド | フレーム | ジャンク | p50 | p90 | p95 | p99 |
+  |--------|---------|---------|-----|-----|-----|-----|
+  | debug | 1523 / 1610 | 6.8% / 7.2% | 9ms | 19〜20ms | 26〜28ms | 48ms |
+  | releaseMeasure（R8 minify） | 1982 | 0.1% | 5ms | 9ms | 10ms | 12ms |
+
+  → debug は Compose が極端に遅く、体感評価に使えない。滑らかさの判断は `install-release-measure-device.bat` のビルドで行う
+- 滑らかさ・ジェスチャー改善の分析と計画（Coil 2.7.x + loadThumbnail 用 Fetcher、Telephoto、ピンチ連続スケール、Baseline Profile、BOM 更新）は P0 の結果を見て範囲を確定する。主な仮説: サムネが自前読込でキャンセル・プレースホルダ無し、全セルの `animateItemPlacement()`、ビューアが画像デコード完了まで空で隣ページ先読み無し、ズーム/パンが自前実装
+- 実機の画面ロック中は gfxinfo が 0 フレームになる。計測前にロック解除が必要（`adb shell svc power stayon usb` で点灯維持）
 - `AlbumDatabase.create()` は VM 1つ前提。複数インスタンスは未対応
 
 ## AIへの伝言
-「Phase A の実装は全部 main に入ったで。実機で滑らかさを確認してな。問題なければ次は C（Media3 動画再生、ADR-0006）に進むで。」
+「滑らかさの主因は debug ビルドやった（release 相当でジャンク 0.1%）。いま実機には releaseMeasure が入っとるから、スクロールとスワイプの体感を見てな。ビューアの『黒→遅れて表示』が気になるなら P4 から着手するで。」
