@@ -1,10 +1,6 @@
 package com.oken.albii.ui.viewer
 
-import android.content.Context
-import android.graphics.Bitmap
-import android.graphics.ImageDecoder
 import android.net.Uri
-import android.util.Size
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -13,6 +9,7 @@ import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -26,7 +23,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -58,12 +54,10 @@ import com.oken.albii.R
 import com.oken.albii.info.InfoItem
 import kotlin.math.abs
 import kotlin.math.max
-import kotlin.math.roundToInt
 
 /** ビューアに渡す 1 件分の情報。写真・動画どちらも content:// の URI で扱う。 */
 data class ViewerItem(val uri: Uri, val isVideo: Boolean)
 
-private const val FULL_SIZE_MAX_PX = 2048
 private val SWIPE_UP_THRESHOLD = 80.dp
 
 /** 全画面ビューア。左右スワイプで前後へ移動し、ピンチで拡大・縮小する。 */
@@ -85,29 +79,37 @@ fun ViewerScreen(
     val swipeUpThresholdPx = with(LocalDensity.current) { SWIPE_UP_THRESHOLD.toPx() }
     var verticalDrag by remember { mutableFloatStateOf(0f) }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black)
-            .pointerInput(zoomed) {
-                // 下から上へのスワイプで写真情報を開く。拡大中は画像の移動を優先する。
-                detectVerticalDragGestures(
-                    onDragStart = { verticalDrag = 0f },
-                    onVerticalDrag = { _, delta -> verticalDrag += delta },
-                    onDragEnd = { if (!zoomed && verticalDrag < -swipeUpThresholdPx) showInfo = true },
-                    onDragCancel = { verticalDrag = 0f },
+    // プレイヤーは、スワイプが落ち着いた（settled）動画ページにだけ作る。ページ送り中に作って捨てるのを避ける。
+    val activeVideo = items.getOrNull(pagerState.settledPage)?.takeIf { it.isVideo }
+    val videoState = if (activeVideo != null) rememberVideoPlayerState(activeVideo.uri) else null
+    val showVideoControls = videoState != null && pagerState.currentPage == pagerState.settledPage
+
+    Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
+        // 縦ドラッグの判定はページャの領域だけに掛ける。下部のシークバーなどの操作と干渉させないため。
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .pointerInput(zoomed) {
+                    // 下から上へのスワイプで写真情報を開く。拡大中は画像の移動を優先する。
+                    detectVerticalDragGestures(
+                        onDragStart = { verticalDrag = 0f },
+                        onVerticalDrag = { _, delta -> verticalDrag += delta },
+                        onDragEnd = { if (!zoomed && verticalDrag < -swipeUpThresholdPx) showInfo = true },
+                        onDragCancel = { verticalDrag = 0f },
+                    )
+                },
+        ) {
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier.fillMaxSize(),
+            ) { page ->
+                ViewerPage(
+                    item = items[page],
+                    isActive = pagerState.currentPage == page,
+                    videoState = videoState.takeIf { pagerState.settledPage == page },
+                    onZoomChanged = { isZoomed -> zoomed = isZoomed },
                 )
-            },
-    ) {
-        HorizontalPager(
-            state = pagerState,
-            modifier = Modifier.fillMaxSize(),
-        ) { page ->
-            ViewerPage(
-                item = items[page],
-                isActive = pagerState.currentPage == page,
-                onZoomChanged = { isZoomed -> zoomed = isZoomed },
-            )
+            }
         }
 
         Row(
@@ -135,32 +137,35 @@ fun ViewerScreen(
         }
 
         if (current != null) {
-            Row(
+            Column(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .navigationBarsPadding()
-                    .padding(bottom = 16.dp)
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(Color.Black.copy(alpha = 0.55f))
-                    .padding(horizontal = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
+                    .padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                if (current.isVideo) {
-                    IconButton(onClick = { launchView(context, current) }) {
-                        Icon(Icons.Default.PlayArrow, stringResource(R.string.viewer_play), tint = Color.White)
-                    }
-                } else {
-                    IconButton(onClick = { launchEdit(context, current) }) {
-                        Icon(Icons.Default.Edit, stringResource(R.string.viewer_edit), tint = Color.White)
-                    }
+                if (showVideoControls) {
+                    VideoControls(state = videoState, modifier = Modifier.fillMaxWidth())
                 }
-                if (!current.isVideo) {
-                    IconButton(onClick = { showInfo = true }) {
-                        Icon(Icons.Default.Info, stringResource(R.string.info_button), tint = Color.White)
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(Color.Black.copy(alpha = 0.55f))
+                        .padding(horizontal = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    if (!current.isVideo) {
+                        IconButton(onClick = { launchEdit(context, current) }) {
+                            Icon(Icons.Default.Edit, stringResource(R.string.viewer_edit), tint = Color.White)
+                        }
+                        IconButton(onClick = { showInfo = true }) {
+                            Icon(Icons.Default.Info, stringResource(R.string.info_button), tint = Color.White)
+                        }
                     }
-                }
-                IconButton(onClick = { launchShare(context, current) }) {
-                    Icon(Icons.Default.Share, stringResource(R.string.viewer_share), tint = Color.White)
+                    IconButton(onClick = { launchShare(context, current) }) {
+                        Icon(Icons.Default.Share, stringResource(R.string.viewer_share), tint = Color.White)
+                    }
                 }
             }
         }
@@ -168,10 +173,22 @@ fun ViewerScreen(
 }
 
 @Composable
-private fun ViewerPage(item: ViewerItem, isActive: Boolean, onZoomChanged: (Boolean) -> Unit) {
+private fun ViewerPage(
+    item: ViewerItem,
+    isActive: Boolean,
+    videoState: VideoPlayerState?,
+    onZoomChanged: (Boolean) -> Unit,
+) {
     val context = LocalContext.current
-    val bitmap by produceState<ImageBitmap?>(initialValue = null, key1 = item.uri) {
-        value = loadFullSize(context, item)?.asImageBitmap()
+    val bitmap by produceState<ImageBitmap?>(
+        initialValue = ViewerImages.cached(item.uri)?.asImageBitmap(),
+        key1 = item.uri,
+    ) {
+        value = ViewerImages.load(context, item)?.asImageBitmap()
+    }
+    if (item.isVideo) {
+        VideoPage(poster = bitmap, state = videoState)
+        return
     }
     val preview = bitmap ?: return
 
@@ -248,23 +265,3 @@ private fun ViewerPage(item: ViewerItem, isActive: Boolean, onZoomChanged: (Bool
         )
     }
 }
-
-/** 画面に収まる範囲で大きめの画像をデコードする。動画は端末のサムネイルを使う。 */
-private fun loadFullSize(context: Context, item: ViewerItem): Bitmap? = runCatching {
-    if (item.isVideo) {
-        context.contentResolver.loadThumbnail(item.uri, Size(FULL_SIZE_MAX_PX, FULL_SIZE_MAX_PX), null)
-    } else {
-        val source = ImageDecoder.createSource(context.contentResolver, item.uri)
-        ImageDecoder.decodeBitmap(source) { decoder, info, _ ->
-            decoder.setAllocator(ImageDecoder.ALLOCATOR_SOFTWARE)
-            val longSide = max(info.size.width, info.size.height)
-            if (longSide > FULL_SIZE_MAX_PX) {
-                val ratio = FULL_SIZE_MAX_PX.toFloat() / longSide
-                decoder.setTargetSize(
-                    (info.size.width * ratio).roundToInt(),
-                    (info.size.height * ratio).roundToInt(),
-                )
-            }
-        }
-    }
-}.getOrNull()

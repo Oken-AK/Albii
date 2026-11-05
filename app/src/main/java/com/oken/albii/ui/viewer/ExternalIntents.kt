@@ -14,9 +14,6 @@ import com.oken.albii.R
  */
 internal const val EXTERNAL_GRANT_FLAGS = Intent.FLAG_GRANT_READ_URI_PERMISSION
 
-internal fun buildViewIntent(uri: Uri, mime: String): Intent =
-    Intent(Intent.ACTION_VIEW).setDataAndType(uri, mime).addFlags(EXTERNAL_GRANT_FLAGS)
-
 internal fun buildEditIntent(uri: Uri, mime: String): Intent =
     Intent(Intent.ACTION_EDIT).setDataAndType(uri, mime).addFlags(EXTERNAL_GRANT_FLAGS)
 
@@ -25,9 +22,6 @@ internal fun buildShareIntent(uri: Uri, mime: String): Intent =
         .setType(mime)
         .putExtra(Intent.EXTRA_STREAM, uri)
         .addFlags(EXTERNAL_GRANT_FLAGS)
-
-fun launchView(context: Context, item: ViewerItem) =
-    startChooserSafely(context, buildViewIntent(item.uri, mimeOf(context, item)))
 
 fun launchEdit(context: Context, item: ViewerItem) =
     startChooserSafely(context, buildEditIntent(item.uri, mimeOf(context, item)))
