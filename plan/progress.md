@@ -7,9 +7,9 @@
 
 ## 現在のステータス
 - **プロジェクト**: Albii
-- **現在地**: 滑らかさ改善の見直し中。P0（release 相当ビルドでの再計測）完了。ブランチ `perf/release-baseline-measure`
-- **直近の変更**: `releaseMeasure` buildType（R8 minify・デバッグ署名）と `install-release-measure-device.bat` を追加。計測の結果、「120Hz 感が弱い」の主因は debug ビルドで評価していたこと（下記）
-- **残り**: 実機で releaseMeasure ビルドの体感確認（ユーザー）。その結果で、Coil 化・Telephoto 化・ピンチ連続スケール等のリファクタ（下記計画 P1〜P6）の範囲を決める。ビューア（画像デコード待ちで空→遅れて表示、先読みなし）は release でも残る課題
+- **現在地**: 滑らかさ改善は P0 で解決。release 相当ビルド（`releaseMeasure`）の実機体感は「めっちゃいい感じ」とユーザー確認済み。main にマージ済み（PR #8）
+- **直近の変更**: `releaseMeasure` buildType（R8 minify・デバッグ署名）と `install-release-measure-device.bat` を追加。主因は debug ビルドで評価していたこと（下記）
+- **残り**: Coil 化・Telephoto 化・ピンチ連続スケール等のリファクタ（P1〜P6）は、体感が良好なため必須ではなくなった。必要になったら再開（特にビューアの画像デコード待ち・隣ページ先読みなし）。次フェーズは C（Media3 動画再生）候補。今後の体感確認は `install-release-measure-device.bat` のビルドで行う
 - **Macrobenchmark**: 作りかけは `git stash`（"macrobenchmark WIP (paused)"）に退避
 
 ## 要件・計画
@@ -56,4 +56,4 @@
 - `AlbumDatabase.create()` は VM 1つ前提。複数インスタンスは未対応
 
 ## AIへの伝言
-「滑らかさの主因は debug ビルドやった（release 相当でジャンク 0.1%）。いま実機には releaseMeasure が入っとるから、スクロールとスワイプの体感を見てな。ビューアの『黒→遅れて表示』が気になるなら P4 から着手するで。」
+「滑らかさは release 相当ビルドで解決したで（体感OK確認済み）。以後の体感確認は install-release-measure-device.bat で行ってな。次は C（Media3 動画再生、ADR-0006）に進めるで。ビューアの黒→遅れて表示が気になったら P4 を再開な。」
